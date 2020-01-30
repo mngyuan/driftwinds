@@ -15,13 +15,13 @@ function Ship:new(pnum)
 		y=24,
 		spd=0,dir=0,
 		rspd=0.06,
-		maxspd=1.4,accamt=0.05,decamt=1.02,
+		MAXSPD=1.4,ACCAMT=0.05,DECAMT=1.02,
 		pstate="free",
 		pstates={"free","drift","boost","hitstun"},
 		driftvec=0,driftside="m",lastdrift=0,
-		driftaccwin=30,
-		boostspds={8,8,6,5,3,3,3,2.5,1.25,0.9},
-		lastboost=-80,boostcd=80,
+		DRIFTACCWIN=30,
+		BOOSTSPDS={8,8,6,5,3,3,3,2.5,1.25,0.9},
+		lastboost=-80,BOOSTCD=80,
 		boostx=0,boosty=0,
 		hitboxr=4,
 
@@ -41,7 +41,7 @@ function Ship:TIC()
 	if btn(self.pnum*8+2) then turnl=true end
 	if btn(self.pnum*8+3) then turnr=true end
 	if btn(self.pnum*8+4) then
-		if self.pstate=="free" and t-self.boostcd > self.lastboost then
+		if self.pstate=="free" and t-self.BOOSTCD > self.lastboost then
 			self.driftvec=self.dir
 			self.pstate="drift"
 			if turnl then self.driftside="l"
@@ -51,7 +51,7 @@ function Ship:TIC()
 		end
 	else
 		if self.pstate=="drift" then
-			if t-self.boostcd > self.lastboost then
+			if t-self.BOOSTCD > self.lastboost then
 				self.lastboost=t
 				self.pstate="boost"
 				self.boostx=self.x
@@ -64,19 +64,19 @@ function Ship:TIC()
 	end
 	
 	if accel then
-		self.spd=math.min(self.spd+self.accamt,self.maxspd)
+		self.spd=math.min(self.spd+self.ACCAMT,self.MAXSPD)
 	elseif self.pstate=="free" then
-		self.spd=self.spd/self.decamt
+		self.spd=self.spd/self.DECAMT
 	elseif self.pstate=="drift" then
-		self.spd=self.spd/((1+self.decamt)/2)
+		self.spd=self.spd/((1+self.DECAMT)/2)
 	end
 	if turnl then
 		if self.pstate=="free" then
 			self.dir=self.dir+self.rspd
 		elseif self.pstate=="drift" then
 			local scale=1
-			if t-self.lastdrift < self.driftaccwin then
-				scale=(t-self.lastdrift)^2/self.driftaccwin^2
+			if t-self.lastdrift < self.DRIFTACCWIN then
+				scale=(t-self.lastdrift)^2/self.DRIFTACCWIN^2
 			end
 			if self.driftside=="l" then
 				self.driftvec=self.driftvec+scale*self.rspd*1.2
@@ -91,7 +91,7 @@ function Ship:TIC()
 			--TODO: refactor this into a pstate=drift driftside=l check instead of 
 			--top level turnl check; this should happen on driftside=l regardless?
 			--of turn state
-			if t-self.lastdrift < 3*self.driftaccwin then
+			if t-self.lastdrift < 3*self.DRIFTACCWIN then
 				self.dir=math.min(self.dir+self.rspd,self.driftvec+10*self.rspd)
 			else
 				self.dir=self.driftvec
@@ -102,8 +102,8 @@ function Ship:TIC()
 			self.dir=self.dir-self.rspd
 		elseif self.pstate=="drift" then
 			local scale=1
-			if t-self.lastdrift < self.driftaccwin then
-				scale=(t-self.lastdrift)^2/self.driftaccwin^2
+			if t-self.lastdrift < self.DRIFTACCWIN then
+				scale=(t-self.lastdrift)^2/self.DRIFTACCWIN^2
 			end
 			if self.driftside=="r" then
 				self.driftvec=self.driftvec-scale*self.rspd*1.2
@@ -118,7 +118,7 @@ function Ship:TIC()
 			--TODO: refactor this into a pstate=drift driftside=l check instead of 
 			--top level turnl check; this should happen on driftside=l regardless?
 			--of turn state
-			if t-self.lastdrift < 3*self.driftaccwin then
+			if t-self.lastdrift < 3*self.DRIFTACCWIN then
 				self.dir=math.max(self.dir-self.rspd,self.driftvec-10*self.rspd)
 			else
 				self.dir=self.driftvec
@@ -139,9 +139,9 @@ function Ship:TIC()
 		self.x=self.x+self.spd*math.cos(self.driftvec)
 		self.y=self.y-self.spd*math.sin(self.driftvec)
 	elseif self.pstate=="boost" then
-		self.spd=self.boostspds[t-self.lastboost+1]
+		self.spd=self.BOOSTSPDS[t-self.lastboost+1]
 		if self.spd==nil then
-			self.spd=self.maxspd
+			self.spd=self.MAXSPD
 			self.pstate="free"
 			self.driftside="m"
 		end
