@@ -3,6 +3,8 @@
 -- desc:		top down battle racer
 -- script:	lua
 
+DEV=true
+
 Ship = {}
 Ship.__index = Ship
 
@@ -12,11 +14,12 @@ function Ship:new(pnum)
 		x=96+pnum*24,
 		y=24,
 		spd=0,dir=0,
-		rspd=0.04,
-		maxspd=0.8,accamt=0.05,decamt=1.02,
+		rspd=0.06,
+		maxspd=1.4,accamt=0.05,decamt=1.02,
 		pstate="free",
 		pstates={"free","drift","boost","hitstun"},
 		driftvec=0,driftside="m",lastdrift=0,
+		driftaccwin=30,
 		boostspds={8,8,6,5,3,3,3,2.5,1.25,0.9},
 		lastboost=-80,boostcd=80,
 		boostx=0,boosty=0,
@@ -31,6 +34,7 @@ end
 function Ship:TIC()
 	local accel=false
 	local turnl,turnr=false,false
+	local debugtxt=""
 
 	if btn(self.pnum*8+0) then accel=true end
 	if btn(self.pnum*8+1) then accel=false end
@@ -64,32 +68,60 @@ function Ship:TIC()
 	elseif self.pstate=="free" then
 		self.spd=self.spd/self.decamt
 	elseif self.pstate=="drift" then
-		self.spd=self.spd/(1+(self.decamt)/2)
+		self.spd=self.spd/((1+self.decamt)/2)
 	end
 	if turnl then
 		if self.pstate=="free" then
 			self.dir=self.dir+self.rspd
 		elseif self.pstate=="drift" then
-			self.dir=self.dir+2*self.rspd
+			local scale=1
+			if t-self.lastdrift < self.driftaccwin then
+				scale=(t-self.lastdrift)^2/self.driftaccwin^2
+			end
 			if self.driftside=="l" then
-				self.driftvec=self.driftvec+self.rspd/0.8
+				self.driftvec=self.driftvec+scale*self.rspd*1.2
+				debugtxt=debugtxt..'rspd '..(scale*self.rspd/1.2)..'\n'
 			elseif self.driftside=="r" then
-				self.driftvec=self.driftvec-self.rspd/2.5
+				self.driftvec=self.driftvec-scale*self.rspd/2.5
+				debugtxt=debugtxt..'rspd '..(-scale*self.rspd/2.5)..'\n'
 			else
-				self.driftvec=self.driftvec+self.rspd/2
+				self.driftvec=self.driftvec+scale*self.rspd/2
+				debugtxt=debugtxt..'rspd '..(scale*self.rspd/2)..'\n'
+			end
+			--TODO: refactor this into a pstate=drift driftside=l check instead of 
+			--top level turnl check; this should happen on driftside=l regardless?
+			--of turn state
+			if t-self.lastdrift < 3*self.driftaccwin then
+				self.dir=math.min(self.dir+self.rspd,self.driftvec+10*self.rspd)
+			else
+				self.dir=self.driftvec
 			end
 		end
 	elseif turnr then
 		if self.pstate=="free" then
 			self.dir=self.dir-self.rspd
 		elseif self.pstate=="drift" then
-			self.dir=self.dir-2*self.rspd
+			local scale=1
+			if t-self.lastdrift < self.driftaccwin then
+				scale=(t-self.lastdrift)^2/self.driftaccwin^2
+			end
 			if self.driftside=="r" then
-				self.driftvec=self.driftvec-self.rspd/0.8
+				self.driftvec=self.driftvec-scale*self.rspd*1.2
+				debugtxt=debugtxt..'rspd '..(-scale*self.rspd/1.2)..'\n'
 			elseif self.driftside=="l" then
-				self.driftvec=self.driftvec+self.rspd/2.5
+				self.driftvec=self.driftvec+scale*self.rspd/2.5
+				debugtxt=debugtxt..'rspd '..(scale*self.rspd/2.5)..'\n'
 			else
-				self.driftvec=self.driftvec-self.rspd/2
+				self.driftvec=self.driftvec-scale*self.rspd/2
+				debugtxt=debugtxt..'rspd '..(-scale*self.rspd/2)..'\n'
+			end
+			--TODO: refactor this into a pstate=drift driftside=l check instead of 
+			--top level turnl check; this should happen on driftside=l regardless?
+			--of turn state
+			if t-self.lastdrift < 3*self.driftaccwin then
+				self.dir=math.max(self.dir-self.rspd,self.driftvec-10*self.rspd)
+			else
+				self.dir=self.driftvec
 			end
 		end
 	elseif self.pstate=="drift" then
@@ -123,8 +155,6 @@ function Ship:TIC()
 	-- draw
 	local indx=self.x+15*math.cos(self.dir)
 	local indy=self.y-15*math.sin(self.dir)
-	local driftindx=self.x+10*math.cos(self.driftvec)
-	local driftindy=self.y-10*math.sin(self.driftvec)
 	local curspr=1
 	
 	if self.dir<math.pi*2 then curspr=8 end
@@ -140,11 +170,13 @@ function Ship:TIC()
 	--spr(1+t%60//30*2,x,y,14,1,0,0,1,1)
 	spr(curspr,self.x,self.y,0,1,0,0,1,1)
 	spr(0,indx,indy,0,1,0,0,1,1)
+	if DEV then
+		print(debugtxt,self.x+8,self.y+8,15,false,1,true)
+	end
 	-- fx
 	local driftt=t-self.lastdrift
 	if self.pstate=="drift" then
 		circb(self.x+4,self.y+4,7+(driftt/7)%8,14+(driftt/7)%2)
-		circb(driftindx+4,driftindy+4,2,14+(driftt/3)%2)
 	elseif self.pstate=="boost" then
 		if self.lastboost==t then sfx(0,'C-4') end
 		if self.lastboost + 12 > t then
@@ -169,8 +201,10 @@ function TIC()
 		for j=i+1,#ships do
 			local d=math.abs(dist(ship.x,ship.y,ships[j].x,ships[j].y))
 			if d<=2*math.max(ship.hitboxr,ships[j].hitboxr) then
-				circ(ship.x+4,ship.y+4,ship.hitboxr,8)
-				circ(ships[j].x+4,ships[j].y+4,ships[j].hitboxr,8)
+				if DEV then
+					circ(ship.x+4,ship.y+4,ship.hitboxr,8)
+					circ(ships[j].x+4,ships[j].y+4,ships[j].hitboxr,8)
+				end
 			end
 		end
 	end
