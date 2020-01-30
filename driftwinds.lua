@@ -3,140 +3,175 @@
 -- desc:		top down battle racer
 -- script:	lua
 
-t=0
-x=96
-y=24
-spd,dir=0,0
-rspd=0.04
-maxspd,accamt,decamt=0.8,0.05,1.02
-pstate="free"
-pstates={"free", "drift", "boost"}
-driftvec,driftside,lastdrift=0,"m",0
-boostspds={8,8,6,5,3,3,3,2.5,1.25,0.9}
-boost,lastboost,boostcd=false,-80,80
-boostx,boosty=0,0
+Ship = {}
+Ship.__index = Ship
 
-function TIC()
+function Ship:new(pnum)
+	local pnum=pnum or 0
+	local ship={
+		x=96+pnum*24,
+		y=24,
+		spd=0,dir=0,
+		rspd=0.04,
+		maxspd=0.8,accamt=0.05,decamt=1.02,
+		pstate="free",
+		pstates={"free","drift","boost","hitstun"},
+		driftvec=0,driftside="m",lastdrift=0,
+		boostspds={8,8,6,5,3,3,3,2.5,1.25,0.9},
+		lastboost=-80,boostcd=80,
+		boostx=0,boosty=0,
+		hitboxr=4,
+
+		pnum=pnum,
+	} 
+	setmetatable(ship, self)
+	return ship
+end
+
+function Ship:TIC()
 	local accel=false
 	local turnl,turnr=false,false
 
-	if btn(0) then accel=true end
-	if btn(1) then accel=false end
-	if btn(2) then turnl=true end
-	if btn(3) then turnr=true end
-	if btn(4) then
-		if pstate=="free" and t-boostcd > lastboost then
-			driftvec=dir
-			pstate="drift"
-			if turnl then driftside="l"
-			elseif turnr then driftside="r"
+	if btn(self.pnum*8+0) then accel=true end
+	if btn(self.pnum*8+1) then accel=false end
+	if btn(self.pnum*8+2) then turnl=true end
+	if btn(self.pnum*8+3) then turnr=true end
+	if btn(self.pnum*8+4) then
+		if self.pstate=="free" and t-self.boostcd > self.lastboost then
+			self.driftvec=self.dir
+			self.pstate="drift"
+			if turnl then self.driftside="l"
+			elseif turnr then self.driftside="r"
 			end
-			lastdrift=t
+			self.lastdrift=t
 		end
 	else
-		if pstate=="drift" then
-			if t-boostcd > lastboost then
-				lastboost=t
-				pstate="boost"
-				boostx=x
-				boosty=y
+		if self.pstate=="drift" then
+			if t-self.boostcd > self.lastboost then
+				self.lastboost=t
+				self.pstate="boost"
+				self.boostx=self.x
+				self.boosty=self.y
 			else
-				pstate="free"
-				driftside="m"
+				self.pstate="free"
+				self.driftside="m"
 			end
 		end
 	end
 	
 	if accel then
-		spd=math.min(spd+accamt,maxspd)
-	elseif pstate=="free" then
-		spd=spd/decamt
-	elseif pstate=="drift" then
-		spd=spd/(1+(decamt)/2)
+		self.spd=math.min(self.spd+self.accamt,self.maxspd)
+	elseif self.pstate=="free" then
+		self.spd=self.spd/self.decamt
+	elseif self.pstate=="drift" then
+		self.spd=self.spd/(1+(self.decamt)/2)
 	end
 	if turnl then
-		if pstate=="free" then
-			dir=dir+rspd
-		elseif pstate=="drift" then
-			dir=dir+2*rspd
-			if driftside=="l" then
-				driftvec=driftvec+rspd/0.8
-			elseif driftside=="r" then
-				driftvec=driftvec-rspd/2.5
+		if self.pstate=="free" then
+			self.dir=self.dir+self.rspd
+		elseif self.pstate=="drift" then
+			self.dir=self.dir+2*self.rspd
+			if self.driftside=="l" then
+				self.driftvec=self.driftvec+self.rspd/0.8
+			elseif self.driftside=="r" then
+				self.driftvec=self.driftvec-self.rspd/2.5
 			else
-				driftvec=driftvec+rspd/2
+				self.driftvec=self.driftvec+self.rspd/2
 			end
 		end
 	elseif turnr then
-		if pstate=="free" then
-			dir=dir-rspd
-		elseif pstate=="drift" then
-			dir=dir-2*rspd
-			if driftside=="r" then
-				driftvec=driftvec-rspd/0.8
-			elseif driftside=="l" then
-				driftvec=driftvec+rspd/2.5
+		if self.pstate=="free" then
+			self.dir=self.dir-self.rspd
+		elseif self.pstate=="drift" then
+			self.dir=self.dir-2*self.rspd
+			if self.driftside=="r" then
+				self.driftvec=self.driftvec-self.rspd/0.8
+			elseif self.driftside=="l" then
+				self.driftvec=self.driftvec+self.rspd/2.5
 			else
-				driftvec=driftvec-rspd/2
+				self.driftvec=self.driftvec-self.rspd/2
 			end
 		end
-	elseif pstate=="drift" then
-		if driftside=="r" then
-			driftvec=driftvec-rspd
-		elseif driftside=="l" then
-			driftvec=driftvec+rspd
+	elseif self.pstate=="drift" then
+		if self.driftside=="r" then
+			self.driftvec=self.driftvec-self.rspd
+		elseif self.driftside=="l" then
+			self.driftvec=self.driftvec+self.rspd
 		end
 	end
-	dir=dir%(math.pi*2)
-	driftvec=driftvec%(math.pi*2)
+	self.dir=self.dir%(math.pi*2)
+	self.driftvec=self.driftvec%(math.pi*2)
 	
 	-- drifting suspends normal movement
-	if pstate=="drift" then
-		x=x+spd*math.cos(driftvec)
-		y=y-spd*math.sin(driftvec)
-	elseif pstate=="boost" then
-		spd=boostspds[t-lastboost+1]
-		if spd==nil then
-			spd=maxspd
-			pstate="free"
-			driftside="m"
+	if self.pstate=="drift" then
+		self.x=self.x+self.spd*math.cos(self.driftvec)
+		self.y=self.y-self.spd*math.sin(self.driftvec)
+	elseif self.pstate=="boost" then
+		self.spd=self.boostspds[t-self.lastboost+1]
+		if self.spd==nil then
+			self.spd=self.maxspd
+			self.pstate="free"
+			self.driftside="m"
 		end
-		x=x+spd*math.cos(dir)
-		y=y-spd*math.sin(dir)
+		self.x=self.x+self.spd*math.cos(self.dir)
+		self.y=self.y-self.spd*math.sin(self.dir)
 	else
-		x=x+spd*math.cos(dir)
-		y=y-spd*math.sin(dir)
+		self.x=self.x+self.spd*math.cos(self.dir)
+		self.y=self.y-self.spd*math.sin(self.dir)
 	end
-	indx=x+15*math.cos(dir)
-	indy=y-15*math.sin(dir)
-	driftindx=x+10*math.cos(driftvec)
-	driftindy=y-10*math.sin(driftvec)
-	
-	if dir<math.pi*2 then curspr=8 end
-	if dir<math.pi*(7/4+1/8) then curspr=7 end
-	if dir<math.pi*(6/4+1/8) then curspr=6 end
-	if dir<math.pi*(5/4+1/8) then curspr=5 end
-	if dir<math.pi*(1+1/8) then curspr=4 end
-	if dir<math.pi*(3/4+1/8) then curspr=3 end
-	if dir<math.pi*(2/4+1/8) then curspr=2 end
-	if dir<math.pi*(1/4+1/8) then curspr=1 end
-	if dir<math.pi*1/8 then curspr=8 end
 
-	cls(13)
+	-- draw
+	local indx=self.x+15*math.cos(self.dir)
+	local indy=self.y-15*math.sin(self.dir)
+	local driftindx=self.x+10*math.cos(self.driftvec)
+	local driftindy=self.y-10*math.sin(self.driftvec)
+	local curspr=1
+	
+	if self.dir<math.pi*2 then curspr=8 end
+	if self.dir<math.pi*(7/4+1/8) then curspr=7 end
+	if self.dir<math.pi*(6/4+1/8) then curspr=6 end
+	if self.dir<math.pi*(5/4+1/8) then curspr=5 end
+	if self.dir<math.pi*(1+1/8) then curspr=4 end
+	if self.dir<math.pi*(3/4+1/8) then curspr=3 end
+	if self.dir<math.pi*(2/4+1/8) then curspr=2 end
+	if self.dir<math.pi*(1/4+1/8) then curspr=1 end
+	if self.dir<math.pi*1/8 then curspr=8 end
+
 	--spr(1+t%60//30*2,x,y,14,1,0,0,1,1)
-	spr(curspr,x,y,0,1,0,0,1,1)
+	spr(curspr,self.x,self.y,0,1,0,0,1,1)
 	spr(0,indx,indy,0,1,0,0,1,1)
 	-- fx
-	driftt=t-lastdrift
-	if pstate=="drift" then
-		circb(x+4,y+4,7+(driftt/7)%8,14+(driftt/7)%2)
+	local driftt=t-self.lastdrift
+	if self.pstate=="drift" then
+		circb(self.x+4,self.y+4,7+(driftt/7)%8,14+(driftt/7)%2)
 		circb(driftindx+4,driftindy+4,2,14+(driftt/3)%2)
-	elseif pstate=="boost" then
-		if lastboost==t then sfx(0,'C-4') end
-		if lastboost + 12 > t then
-			boostdestx=boostx+30*math.cos(dir)
-			boostdesty=boosty-30*math.sin(dir)
-			line(boostx+4,boosty+4,boostdestx+4,boostdesty+4,14+(driftt/3)%2)
+	elseif self.pstate=="boost" then
+		if self.lastboost==t then sfx(0,'C-4') end
+		if self.lastboost + 12 > t then
+			local boostdestx=self.boostx+30*math.cos(self.dir)
+			local boostdesty=self.boosty-30*math.sin(self.dir)
+			line(self.boostx+4,self.boosty+4,boostdestx+4,boostdesty+4,14+(driftt/3)%2)
+		end
+	end
+end
+
+function dist(x1,y1,x2,y2)
+	return math.sqrt((x2-x1)^2+(y2-y1)^2)
+end
+
+t=0
+ships={Ship:new(0), Ship:new(1)}
+
+function TIC()
+	cls(13)
+	for i,ship in ipairs(ships) do
+		ship:TIC()
+		for j=i+1,#ships do
+			local d=math.abs(dist(ship.x,ship.y,ships[j].x,ships[j].y))
+			if d<=2*math.max(ship.hitboxr,ships[j].hitboxr) then
+				circ(ship.x+4,ship.y+4,ship.hitboxr,8)
+				circ(ships[j].x+4,ships[j].y+4,ships[j].hitboxr,8)
+			end
 		end
 	end
 	t=t+1
