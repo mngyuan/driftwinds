@@ -16,9 +16,9 @@ function Ship:new(pnum)
 		spd=0,dir=0,
 		rspd=0.06,
 		MAXSPD=1.4,ACCAMT=0.05,DECAMT=1.02,
-		pstate="free",
-		pstates={"free","drift","boost","hitstun"},
-		driftvec=0,driftside="m",lastdrift=0,
+		pstate='free',
+		pstates={'free','drift','boost','hitstun'},
+		driftvec=0,driftside='m',lastdrift=0,
 		DRIFTACCWIN=30,
 		BOOSTSPDS={8,8,6,5,3,3,3,2.5,1.25,0.9},
 		lastboost=-80,BOOSTCD=80,
@@ -34,54 +34,54 @@ end
 function Ship:TIC()
 	local accel=false
 	local turnl,turnr=false,false
-	local debugtxt=""
+	local debugtxt=''
 
 	if btn(self.pnum*8+0) then accel=true end
 	if btn(self.pnum*8+1) then accel=false end
 	if btn(self.pnum*8+2) then turnl=true end
 	if btn(self.pnum*8+3) then turnr=true end
 	if btn(self.pnum*8+4) then
-		if self.pstate=="free" and t-self.BOOSTCD > self.lastboost then
+		if self.pstate=='free' and t-self.BOOSTCD > self.lastboost then
 			self.driftvec=self.dir
-			self.pstate="drift"
-			if turnl then self.driftside="l"
-			elseif turnr then self.driftside="r"
+			self.pstate='drift'
+			if turnl then self.driftside='l'
+			elseif turnr then self.driftside='r'
 			end
 			self.lastdrift=t
 		end
 	else
-		if self.pstate=="drift" then
+		if self.pstate=='drift' then
 			if t-self.BOOSTCD > self.lastboost then
 				self.lastboost=t
-				self.pstate="boost"
+				self.pstate='boost'
 				self.boostx=self.x
 				self.boosty=self.y
 			else
-				self.pstate="free"
-				self.driftside="m"
+				self.pstate='free'
+				self.driftside='m'
 			end
 		end
 	end
 	
 	if accel then
 		self.spd=math.min(self.spd+self.ACCAMT,self.MAXSPD)
-	elseif self.pstate=="free" then
+	elseif self.pstate=='free' then
 		self.spd=self.spd/self.DECAMT
-	elseif self.pstate=="drift" then
+	elseif self.pstate=='drift' then
 		self.spd=self.spd/((1+self.DECAMT)/2)
 	end
 	if turnl then
-		if self.pstate=="free" then
+		if self.pstate=='free' then
 			self.dir=self.dir+self.rspd
-		elseif self.pstate=="drift" then
+		elseif self.pstate=='drift' then
 			local scale=1
 			if t-self.lastdrift < self.DRIFTACCWIN then
 				scale=(t-self.lastdrift)^2/self.DRIFTACCWIN^2
 			end
-			if self.driftside=="l" then
+			if self.driftside=='l' then
 				self.driftvec=self.driftvec+scale*self.rspd*1.2
 				debugtxt=debugtxt..'rspd '..(scale*self.rspd/1.2)..'\n'
-			elseif self.driftside=="r" then
+			elseif self.driftside=='r' then
 				self.driftvec=self.driftvec-scale*self.rspd/2.5
 				debugtxt=debugtxt..'rspd '..(-scale*self.rspd/2.5)..'\n'
 			else
@@ -98,17 +98,17 @@ function Ship:TIC()
 			end
 		end
 	elseif turnr then
-		if self.pstate=="free" then
+		if self.pstate=='free' then
 			self.dir=self.dir-self.rspd
-		elseif self.pstate=="drift" then
+		elseif self.pstate=='drift' then
 			local scale=1
 			if t-self.lastdrift < self.DRIFTACCWIN then
 				scale=(t-self.lastdrift)^2/self.DRIFTACCWIN^2
 			end
-			if self.driftside=="r" then
+			if self.driftside=='r' then
 				self.driftvec=self.driftvec-scale*self.rspd*1.2
 				debugtxt=debugtxt..'rspd '..(-scale*self.rspd/1.2)..'\n'
-			elseif self.driftside=="l" then
+			elseif self.driftside=='l' then
 				self.driftvec=self.driftvec+scale*self.rspd/2.5
 				debugtxt=debugtxt..'rspd '..(scale*self.rspd/2.5)..'\n'
 			else
@@ -124,10 +124,10 @@ function Ship:TIC()
 				self.dir=self.driftvec
 			end
 		end
-	elseif self.pstate=="drift" then
-		if self.driftside=="r" then
+	elseif self.pstate=='drift' then
+		if self.driftside=='r' then
 			self.driftvec=self.driftvec-self.rspd
-		elseif self.driftside=="l" then
+		elseif self.driftside=='l' then
 			self.driftvec=self.driftvec+self.rspd
 		end
 	end
@@ -135,15 +135,15 @@ function Ship:TIC()
 	self.driftvec=self.driftvec%(math.pi*2)
 	
 	-- drifting suspends normal movement
-	if self.pstate=="drift" then
+	if self.pstate=='drift' then
 		self.x=self.x+self.spd*math.cos(self.driftvec)
 		self.y=self.y-self.spd*math.sin(self.driftvec)
-	elseif self.pstate=="boost" then
+	elseif self.pstate=='boost' then
 		self.spd=self.BOOSTSPDS[t-self.lastboost+1]
 		if self.spd==nil then
 			self.spd=self.MAXSPD
-			self.pstate="free"
-			self.driftside="m"
+			self.pstate='free'
+			self.driftside='m'
 		end
 		self.x=self.x+self.spd*math.cos(self.dir)
 		self.y=self.y-self.spd*math.sin(self.dir)
@@ -175,9 +175,9 @@ function Ship:TIC()
 	end
 	-- fx
 	local driftt=t-self.lastdrift
-	if self.pstate=="drift" then
+	if self.pstate=='drift' then
 		circb(self.x+4,self.y+4,7+(driftt/7)%8,14+(driftt/7)%2)
-	elseif self.pstate=="boost" then
+	elseif self.pstate=='boost' then
 		if self.lastboost==t then sfx(0,'C-4') end
 		if self.lastboost + 12 > t then
 			local boostdestx=self.boostx+30*math.cos(self.dir)
