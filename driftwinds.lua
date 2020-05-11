@@ -18,7 +18,7 @@ function Ship:new(pnum)
 		MAXSPD=1.4,ACCAMT=0.05,DECAMT=1.02,
 		pstate='free',
 		pstates={'free','drift','boost','hitstun'},
-		driftvec=0,driftside='m',lastdrift=0,
+		driftdir=0,driftside='m',lastdrift=0,
 		DRIFTACCWIN=30,
 		BOOSTSPDS={8,8,6,5,3,3,3,2.5,1.25,0.9},
 		lastboost=-80,BOOSTCD=80,
@@ -42,7 +42,7 @@ function Ship:TIC()
 	if btn(self.pnum*8+3) then turnr=true end
 	if btn(self.pnum*8+4) then
 		if self.pstate=='free' and t-self.BOOSTCD > self.lastboost then
-			self.driftvec=self.dir
+			self.driftdir=self.dir
 			self.pstate='drift'
 			if turnl then self.driftside='l'
 			elseif turnr then self.driftside='r'
@@ -63,81 +63,81 @@ function Ship:TIC()
 		end
 	end
 	
-	if accel then
-		self.spd=math.min(self.spd+self.ACCAMT,self.MAXSPD)
-	elseif self.pstate=='free' then
-		self.spd=self.spd/self.DECAMT
-	elseif self.pstate=='drift' then
-		self.spd=self.spd/((1+self.DECAMT)/2)
-	end
-	if turnl then
-		if self.pstate=='free' then
+	if self.pstate=='free' then
+		if accel then
+			self.spd=math.min(self.spd+self.ACCAMT,self.MAXSPD)
+		else
+			self.spd=self.spd/self.DECAMT
+		end
+		if turnl then
 			self.dir=self.dir+self.rspd
-		elseif self.pstate=='drift' then
+		elseif turnr then
+			self.dir=self.dir-self.rspd
+		end
+	elseif self.pstate=='drift' then
+		-- during drifting, self.driftdir refers to the direction of movement
+		-- self.dir refers to the direction the ship points
+		-- and the direction the player will move when ending drift
+		-- these are only different during DRIFFACCWIN
+		if accel then
+			self.spd=math.min(self.spd+self.ACCAMT,self.MAXSPD)
+		else
+			self.spd=self.spd/((1+self.DECAMT)/2)
+		end
+		if self.driftside=='l' then
 			local scale=1
 			if t-self.lastdrift < self.DRIFTACCWIN then
 				scale=(t-self.lastdrift)^2/self.DRIFTACCWIN^2
 			end
-			if self.driftside=='l' then
-				self.driftvec=self.driftvec+scale*self.rspd*1.2
+			if turnl then
+				self.driftdir=self.driftdir+scale*self.rspd*1.2
 				debugtxt=debugtxt..'rspd '..(scale*self.rspd/1.2)..'\n'
-			elseif self.driftside=='r' then
-				self.driftvec=self.driftvec-scale*self.rspd/2.5
+			elseif turnr then
+				self.driftdir=self.driftdir-scale*self.rspd/2.5
 				debugtxt=debugtxt..'rspd '..(-scale*self.rspd/2.5)..'\n'
 			else
-				self.driftvec=self.driftvec+scale*self.rspd/2
+				self.driftdir=self.driftdir+scale*self.rspd/2
 				debugtxt=debugtxt..'rspd '..(scale*self.rspd/2)..'\n'
 			end
-			--TODO: refactor this into a pstate=drift driftside=l check instead of 
-			--top level turnl check; this should happen on driftside=l regardless?
-			--of turn state
-			if t-self.lastdrift < 3*self.DRIFTACCWIN then
-				self.dir=math.min(self.dir+self.rspd,self.driftvec+10*self.rspd)
-			else
-				self.dir=self.driftvec
-			end
-		end
-	elseif turnr then
-		if self.pstate=='free' then
-			self.dir=self.dir-self.rspd
-		elseif self.pstate=='drift' then
+		elseif self.driftside=='r' then
 			local scale=1
 			if t-self.lastdrift < self.DRIFTACCWIN then
 				scale=(t-self.lastdrift)^2/self.DRIFTACCWIN^2
 			end
-			if self.driftside=='r' then
-				self.driftvec=self.driftvec-scale*self.rspd*1.2
-				debugtxt=debugtxt..'rspd '..(-scale*self.rspd/1.2)..'\n'
-			elseif self.driftside=='l' then
-				self.driftvec=self.driftvec+scale*self.rspd/2.5
+			if turnl then
+				self.driftdir=self.driftdir+scale*self.rspd/2.5
 				debugtxt=debugtxt..'rspd '..(scale*self.rspd/2.5)..'\n'
+			elseif turnr then
+				self.driftdir=self.driftdir-scale*self.rspd*1.2
+				debugtxt=debugtxt..'rspd '..(-scale*self.rspd/1.2)..'\n'
 			else
-				self.driftvec=self.driftvec-scale*self.rspd/2
+				self.driftdir=self.driftdir-scale*self.rspd/2
 				debugtxt=debugtxt..'rspd '..(-scale*self.rspd/2)..'\n'
 			end
-			--TODO: refactor this into a pstate=drift driftside=l check instead of 
-			--top level turnl check; this should happen on driftside=l regardless?
-			--of turn state
-			if t-self.lastdrift < 3*self.DRIFTACCWIN then
-				self.dir=math.max(self.dir-self.rspd,self.driftvec-10*self.rspd)
-			else
-				self.dir=self.driftvec
-			end
 		end
-	elseif self.pstate=='drift' then
-		if self.driftside=='r' then
-			self.driftvec=self.driftvec-self.rspd
-		elseif self.driftside=='l' then
-			self.driftvec=self.driftvec+self.rspd
+		if self.driftside=='l' then
+			if t-self.lastdrift < 3*self.DRIFTACCWIN then
+				self.dir=math.min(self.dir+self.rspd,self.driftdir+10*self.rspd)
+			else
+				self.dir=self.driftdir
+			end
+		elseif self.driftside=='r' then
+			if t-self.lastdrift < 3*self.DRIFTACCWIN then
+				self.dir=math.max(self.dir-self.rspd,self.driftdir-10*self.rspd)
+			else
+				self.dir=self.driftdir
+			end
 		end
 	end
 	self.dir=self.dir%(math.pi*2)
-	self.driftvec=self.driftvec%(math.pi*2)
+	self.driftdir=self.driftdir%(math.pi*2)
+	debugtxt=debugtxt..'dir: '..(self.dir)..'\n'
+	debugtxt=debugtxt..'ddir: '..(self.driftdir)..'\n'
 	
 	-- drifting suspends normal movement
 	if self.pstate=='drift' then
-		self.x=self.x+self.spd*math.cos(self.driftvec)
-		self.y=self.y-self.spd*math.sin(self.driftvec)
+		self.x=self.x+self.spd*math.cos(self.driftdir)
+		self.y=self.y-self.spd*math.sin(self.driftdir)
 	elseif self.pstate=='boost' then
 		self.spd=self.BOOSTSPDS[t-self.lastboost+1]
 		if self.spd==nil then
