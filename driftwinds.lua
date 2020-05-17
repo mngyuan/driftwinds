@@ -11,8 +11,8 @@ Ship.__index = Ship
 function Ship:new(pnum)
 	local pnum=pnum or 0
 	local ship={
-		x=96+pnum*24,
-		y=24,
+		x=120+pnum*24,
+		y=64,
 		spd=0,dir=0,
 		rspd=0.06,
 		MAXSPD=1.4,ACCAMT=0.05,DECAMT=1.02,
@@ -91,13 +91,13 @@ function Ship:TIC()
 			end
 			if turnl then
 				self.driftdir=self.driftdir+scale*self.rspd*1.2
-				debugtxt=debugtxt..'rspd '..(scale*self.rspd/1.2)..'\n'
+				--debugtxt=debugtxt..'rspd '..(scale*self.rspd/1.2)..'\n'
 			elseif turnr then
 				self.driftdir=self.driftdir-scale*self.rspd/2.5
-				debugtxt=debugtxt..'rspd '..(-scale*self.rspd/2.5)..'\n'
+				--debugtxt=debugtxt..'rspd '..(-scale*self.rspd/2.5)..'\n'
 			else
 				self.driftdir=self.driftdir+scale*self.rspd/2
-				debugtxt=debugtxt..'rspd '..(scale*self.rspd/2)..'\n'
+				--debugtxt=debugtxt..'rspd '..(scale*self.rspd/2)..'\n'
 			end
 		elseif self.driftside=='r' then
 			local scale=1
@@ -106,13 +106,13 @@ function Ship:TIC()
 			end
 			if turnl then
 				self.driftdir=self.driftdir+scale*self.rspd/2.5
-				debugtxt=debugtxt..'rspd '..(scale*self.rspd/2.5)..'\n'
+				--debugtxt=debugtxt..'rspd '..(scale*self.rspd/2.5)..'\n'
 			elseif turnr then
 				self.driftdir=self.driftdir-scale*self.rspd*1.2
-				debugtxt=debugtxt..'rspd '..(-scale*self.rspd/1.2)..'\n'
+				--debugtxt=debugtxt..'rspd '..(-scale*self.rspd/1.2)..'\n'
 			else
 				self.driftdir=self.driftdir-scale*self.rspd/2
-				debugtxt=debugtxt..'rspd '..(-scale*self.rspd/2)..'\n'
+				--debugtxt=debugtxt..'rspd '..(-scale*self.rspd/2)..'\n'
 			end
 		end
 		if self.driftside=='l' then
@@ -131,8 +131,8 @@ function Ship:TIC()
 	end
 	self.dir=self.dir%(math.pi*2)
 	self.driftdir=self.driftdir%(math.pi*2)
-	debugtxt=debugtxt..'dir: '..(self.dir)..'\n'
-	debugtxt=debugtxt..'ddir: '..(self.driftdir)..'\n'
+	--debugtxt=debugtxt..'dir: '..(self.dir)..'\n'
+	--debugtxt=debugtxt..'ddir: '..(self.driftdir)..'\n'
 	
 	-- drifting suspends normal movement
 	if self.pstate=='drift' then
@@ -168,24 +168,24 @@ function Ship:TIC()
 	if self.dir<math.pi*1/8 then curspr=276 end -- E
 
 	--spr(1+t%60//30*2,x,y,14,1,0,0,1,1)
-	spr(curspr,self.x-4,self.y-4,0,1,0,0,1,1)
-	spr(curspr+1,self.x+4,self.y-4,0,1,0,0,1,1)
-	spr(curspr+16,self.x-4,self.y+4,0,1,0,0,1,1)
-	spr(curspr+17,self.x+4,self.y+4,0,1,0,0,1,1)
-	spr(256,indx,indy,0,1,0,0,1,1) -- indicator
+	spr(curspr,cam.x+self.x-4,cam.y+self.y-4,0,1,0,0,1,1)
+	spr(curspr+1,cam.x+self.x+4,cam.y+self.y-4,0,1,0,0,1,1)
+	spr(curspr+16,cam.x+self.x-4,cam.y+self.y+4,0,1,0,0,1,1)
+	spr(curspr+17,cam.x+self.x+4,cam.y+self.y+4,0,1,0,0,1,1)
+	spr(256,cam.x+indx,cam.y+indy,0,1,0,0,1,1) -- indicator
 	if DEV then
-		print(debugtxt,self.x+8,self.y+8,15,false,1,true)
+		print(debugtxt,cam.x+self.x+8,cam.y+self.y+8,15,false,1,true)
 	end
 	-- fx
 	local driftt=t-self.lastdrift
 	if self.pstate=='drift' then
-		circb(self.x+4,self.y+4,7+(driftt/7)%8,14+(driftt/7)%2)
+		circb(self.x+4+cam.x,self.y+4+cam.y,7+(driftt/7)%8,14+(driftt/7)%2)
 	elseif self.pstate=='boost' then
 		if self.lastboost==t then sfx(0,'C-4') end
 		if self.lastboost + 12 > t then
 			local boostdestx=self.boostx+30*math.cos(self.dir)
 			local boostdesty=self.boosty-30*math.sin(self.dir)
-			line(self.boostx+4,self.boosty+4,boostdestx+4,boostdesty+4,14+(driftt/3)%2)
+			line(cam.x+self.boostx+4,cam.y+self.boosty+4,boostdestx+4+cam.x,boostdesty+4+cam.y,14+(driftt/3)%2)
 		end
 	end
 end
@@ -196,20 +196,38 @@ end
 
 t=0
 ships={Ship:new(0), Ship:new(1)}
+cam={x=120,y=68}
+function remap(tile,x,y)
+	return t//60%2
+end
+function lerp(a,b,t) return (1-t)*a + t*b end
 
 function TIC()
-	function remap(tile,x,y)
-		return t//60%2
-	end
-	map(0,0,30,17,0,0,-1,1,remap)
+	-- follow one player
+	cam.x=math.min(120,120-ships[1].x)
+	cam.y=math.min(64,64-ships[1].y)
+	-- follow all players
+	--avgx=(ships[1].x + ships[2].x)/2
+	--avgy=(ships[1].y + ships[2].y)/2
+	--cam.x=math.min(120,120-avgx)
+	--cam.y=math.min(64,64-avgy)
+	-- follow one player with some leeway
+	--cam.x=math.min(120,lerp(cam.x,120-ships[1].x,0.05))
+	--cam.y=math.min(64,lerp(cam.y,64-ships[1].y,0.05))
+	drawx=cam.x-120
+	drawy=cam.y-64
+	-- camera cell x / y
+	local ccx=cam.x/8+(cam.x%8==0 and 1 or 0)
+	local ccy=cam.y/8+(cam.y%8==0 and 1 or 0)
+	map(ccx-15,ccy-8,32,17,(cam.x%8)-8,(cam.y%8)-8,-1,1,remap)
 	for i,ship in ipairs(ships) do
 		ship:TIC()
 		for j=i+1,#ships do
 			local d=math.abs(dist(ship.x,ship.y,ships[j].x,ships[j].y))
 			if d<=2*math.max(ship.hitboxr,ships[j].hitboxr) then
 				if DEV then
-					circ(ship.x+4,ship.y+4,ship.hitboxr,8)
-					circ(ships[j].x+4,ships[j].y+4,ships[j].hitboxr,8)
+					circ(ship.x+4+cam.x,ship.y+4+cam.y,ship.hitboxr,8)
+					circ(ships[j].x+4+cam.x,ships[j].y+4+cam.y,ships[j].hitboxr,8)
 				end
 			end
 		end
@@ -231,7 +249,7 @@ end
 -- </TILES>
 
 -- <SPRITES>
--- 000:0000000000000000000000000006e000000e6000000000000000000000000000
+-- 000:000000000000000000000000000aa000000aa000000000000000000000000000
 -- 001:00000040004000f000f00f4f0fff07ff0f4ff3347fff74400433440000440000
 -- 002:00fff00000fff00000f770000fffff000ffff700037ff4000443440000444000
 -- 003:040000000f000400f4f00f00ff70fff0433ff4f00447fff70044334000004400
@@ -248,8 +266,8 @@ end
 -- 021:0000000000000000000aa00000a11a0000a99a000a199a000a199a000a199a00
 -- 022:0000000000000000000aa00000a11a0000a19a0000a199a000a199a000a199a0
 -- 023:00aa00000a11a0000a19a0000a199a000a199a000a199a000a199a000a199a00
--- 024:0000000000000000000000a00000aa9a000a199a000a199a000a199a000a199a
--- 025:0000000000aa0000aa99a0001999a0001999a0001999a0001999a0001999a000
+-- 024:0000000000000000000000a00000aa1a000a119a000a199a000a199a000a199a
+-- 025:0000000000aa0000aa11a0001199a0001999a0001999a0001999a0001999a000
 -- 026:000000000000aa00000a11aa000a1911000a1999000a1999000a1999000a1999
 -- 027:00000000000000000a000000a1aa0000a111a000a199a000a199a000a199a000
 -- 028:00000000000000000000000a0000aa0a000a11aa000a191a000a199a000a199a
