@@ -221,7 +221,12 @@ function TIC()
 	local ccx=-cam.x/8
 	local ccy=-cam.y/8
 	-- draw ocean background
-	map(math.ceil(ccx-15),math.ceil(ccy-8),32,18,(cam.x%8),(cam.y%8),-1,1,remap)
+	map(
+		math.ceil(ccx-15), math.ceil(ccy-8), -- ceil fixes jumping crossing 0
+		32,18, -- draw the whole screen's worth
+		(cam.x%8)-8,(cam.y%8)-8, -- minus 8 makes sure we fill the screen
+		-1,1,remap
+	)
 	if DEV then
 		--print(string.format('cam.x %.2f\ncam.y %.2f\nmap start x %.2f \nmap start y %.2f \ncam.x mod 8 %.2f \ncam.y mod 8 %.2f', cam.x, cam.y, ccx-15, ccy-8,(cam.x%8),(cam.y%8)),30,30,15,true)
 	end
@@ -237,6 +242,7 @@ function TIC()
 			end
 		end
 	end
+	print('DRIFTWINDS alpha', 4, 4, 15)
 	t=t+1
 end
 
