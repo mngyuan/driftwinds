@@ -5,6 +5,56 @@
 
 DEV=true
 
+function array_map(tbl, f)
+    local t = {}
+    for k,v in pairs(tbl) do
+        t[k] = f(v)
+    end
+    return t
+end
+
+function array_findIndex(tbl, targetValue)
+	for k,v in pairs(tbl) do
+		if v == targetValue then
+			return k
+		end
+	end
+end
+
+function dist(a, b)
+	return math.sqrt((b.x - a.x)^2 + (b.y - a.y)^2)
+end
+
+Enemy = {}
+Enemy.__index = Enemy
+
+function Enemy:new()
+	local enemy={
+		x=80,
+		y=40,
+		spd=0,dir=0,
+		rspd=0.06,
+		MAXSPD=1.4,ACCAMT=0.05,DECAMT=1.02,
+		pstate='follow',
+		pstates={'follow', 'death'},
+	}
+	setmetatable(enemy, self)
+	return enemy
+end
+
+function Enemy:TIC()
+	--dists = array_map(ships, function (ship) return dist(ship, self) end)
+	targetship = ships[1] --ships[array_findIndex(dists, math.max(unpack(dists)))]
+
+	if (self.x < targetship.x + 4) then self.x=self.x+1
+	elseif (self.x > targetship.x + 4) then self.x=self.x-1 end
+	if (self.y < targetship.y + 4) then self.y=self.y+1
+	elseif (self.y > targetship.y + 4) then self.y=self.y-1 end
+
+	circ(cam.x + self.x, cam.y + self.y, 4, 2)
+	circb(cam.x + self.x, cam.y + self.y, 4, 10)
+end
+
 Ship = {}
 Ship.__index = Ship
 
@@ -197,6 +247,7 @@ end
 t=0
 ships={Ship:new(0), Ship:new(1)}
 cam={x=120,y=68}
+enemies={Enemy:new()}
 function remap(tile,x,y)
 	if tile==48 or tile==49 then
 		return t//60%2+48
@@ -242,6 +293,9 @@ function TIC()
 	)
 	if DEV then
 		--print(string.format('cam.x %.2f\ncam.y %.2f\nmap start x %.2f \nmap start y %.2f \ncam.x mod 8 %.2f \ncam.y mod 8 %.2f', cam.x, cam.y, ccx-15, ccy-8,(cam.x%8),(cam.y%8)),30,30,15,true)
+	end
+	for i,enemy in ipairs(enemies) do
+		enemy:TIC()
 	end
 	for i,ship in ipairs(ships) do
 		ship:TIC()
