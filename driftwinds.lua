@@ -51,8 +51,11 @@ function Enemy:TIC()
 	if (self.y < targetship.y + 4) then self.y=self.y+1
 	elseif (self.y > targetship.y + 4) then self.y=self.y-1 end
 
-	circ(cam.x + self.x, cam.y + self.y, 4, 2)
-	circb(cam.x + self.x, cam.y + self.y, 4, 10)
+	curspr=340
+	spr(curspr,cam.x+self.x-4,cam.y+self.y-4,0,1,0,0,1,1)
+	spr(curspr+1,cam.x+self.x+4,cam.y+self.y-4,0,1,0,0,1,1)
+	spr(curspr+16,cam.x+self.x-4,cam.y+self.y+4,0,1,0,0,1,1)
+	spr(curspr+17,cam.x+self.x+4,cam.y+self.y+4,0,1,0,0,1,1)
 end
 
 Ship = {}
