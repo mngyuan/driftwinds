@@ -21,8 +21,21 @@ function array_findIndex(tbl, targetValue)
 	end
 end
 
-function dist(a, b)
+function dist(x1,y1,x2,y2)
+	return math.sqrt((x2-x1)^2+(y2-y1)^2)
+end
+
+function vec_dist(a, b)
 	return math.sqrt((b.x - a.x)^2 + (b.y - a.y)^2)
+end
+
+-- a vec has a x and y property (and is assumed to be measured from 0,0)
+function vec_dot_prod(v1, v2)
+	return (v1.x * v2.x) + (v1.y * v2.y)
+end
+
+function vec_mag(v)
+	return vec_dist({x=0,y=0}, v)
 end
 
 Enemy = {}
@@ -33,8 +46,8 @@ function Enemy:new()
 		x=80,
 		y=40,
 		spd=0,dir=0,
-		rspd=0.06,
-		MAXSPD=1.4,ACCAMT=0.05,DECAMT=1.02,
+		rspd=0.03,
+		MAXSPD=0.7,ACCAMT=0.05,DECAMT=1.02,
 		pstate='follow',
 		pstates={'follow', 'hitstun'},
 		lasthit=nil,DEATHANIMLEN=80,
@@ -49,13 +62,47 @@ function Enemy:TIC()
 	local curspr=340
 
 	if self.pstate == 'follow' then
-		--dists = array_map(ships, function (ship) return dist(ship, self) end)
+		local accel=true
+		--dists = array_map(ships, function (ship) return vec_dist(ship, self) end)
 		local targetship = ships[1] --ships[array_findIndex(dists, math.max(unpack(dists)))]
+		local vec_to_targetship = {x=(targetship.x-self.x), y=(targetship.y-self.y)}
+		local self_vec = {x=self.MAXSPD*math.cos(self.dir), y=self.MAXSPD*math.sin(self.dir)}
+		local angle_to_targetship = math.atan2(vec_to_targetship.x, vec_to_targetship.y) - math.atan2(self_vec.x, self_vec.y)
+		if angle_to_targetship < -math.pi then
+			-- fix quadrant II
+			angle_to_targetship = math.pi*2 + angle_to_targetship
+		end
+		--print(
+			--'vec_to_targetship.x: ' .. vec_to_targetship.x ..'\n'..
+			--'vec_to_targetship.y: ' .. vec_to_targetship.y .. '\n' ..
+			--'vec_dot_prod(v_t, v_s): ' .. vec_dot_prod(vec_to_targetship, self_vec) .. '\n' ..
+			--'angle_to_targetship: ' .. math.deg(angle_to_targetship) .. '\n' ..
+			--'vec_mag(self_vec): ' .. vec_mag(self_vec) .. '\n' ..
+			--'vec_mag(vec_to_targetship): ' .. vec_mag(vec_to_targetship) .. '\n' ..
+			--'turn right?: ' .. tostring(angle_to_targetship < 0)
+		--)
+		if angle_to_targetship < 0 then
+			-- turn right
+			self.dir=self.dir+self.rspd
+			if angle_to_targetship < -math.pi/2 then
+				accel=false
+			end
+		else
+			-- turn left
+			self.dir=self.dir-self.rspd
+			if angle_to_targetship > math.pi/2 then
+				accel=false
+			end
+		end
+		self.dir=self.dir%(math.pi*2)
 
-		if (self.x < targetship.x + 4) then self.x=self.x+1
-		elseif (self.x > targetship.x + 4) then self.x=self.x-1 end
-		if (self.y < targetship.y + 4) then self.y=self.y+1
-		elseif (self.y > targetship.y + 4) then self.y=self.y-1 end
+		if accel then
+			self.spd=math.min(self.spd+self.ACCAMT,self.MAXSPD)
+		else
+			self.spd=self.spd/self.DECAMT
+		end
+		self.x=self.x+self.spd*math.cos(self.dir)
+		self.y=self.y+self.spd*math.sin(self.dir)
 	elseif self.pstate == 'hitstun' then
 		if t-self.lasthit > self.DEATHANIMLEN then
 			table.remove(enemies, array_findIndex(enemies, self))
@@ -64,6 +111,9 @@ function Enemy:TIC()
 	end
 
 	if should_draw then
+		local indx=self.x+15*math.cos(self.dir)
+		local indy=self.y-15*math.sin(self.dir)
+		spr(256,cam.x+indx,cam.y+indy,0,1,0,0,1,1) -- indicator
 		spr(curspr,cam.x+self.x-4,cam.y+self.y-4,0,1,0,0,1,1)
 		spr(curspr+1,cam.x+self.x+4,cam.y+self.y-4,0,1,0,0,1,1)
 		spr(curspr+16,cam.x+self.x-4,cam.y+self.y+4,0,1,0,0,1,1)
@@ -254,10 +304,6 @@ function Ship:TIC()
 			line(cam.x+self.boostx+4,cam.y+self.boosty+4,boostdestx+4+cam.x,boostdesty+4+cam.y,14+(driftt/3)%2)
 		end
 	end
-end
-
-function dist(x1,y1,x2,y2)
-	return math.sqrt((x2-x1)^2+(y2-y1)^2)
 end
 
 t=0
