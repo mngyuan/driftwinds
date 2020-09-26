@@ -6,11 +6,11 @@
 DEV=true
 
 function array_map(tbl, f)
-    local t = {}
-    for k,v in pairs(tbl) do
-        t[k] = f(v)
-    end
-    return t
+	local t = {}
+	for k,v in pairs(tbl) do
+		t[k] = f(v)
+	end
+	return t
 end
 
 function array_findIndex(tbl, targetValue)
@@ -36,26 +36,39 @@ function Enemy:new()
 		rspd=0.06,
 		MAXSPD=1.4,ACCAMT=0.05,DECAMT=1.02,
 		pstate='follow',
-		pstates={'follow', 'death'},
+		pstates={'follow', 'hitstun'},
+		lasthit=nil,DEATHANIMLEN=80,
+		hitboxr=8,
 	}
 	setmetatable(enemy, self)
 	return enemy
 end
 
 function Enemy:TIC()
-	--dists = array_map(ships, function (ship) return dist(ship, self) end)
-	targetship = ships[1] --ships[array_findIndex(dists, math.max(unpack(dists)))]
+	local should_draw=true
+	local curspr=340
 
-	if (self.x < targetship.x + 4) then self.x=self.x+1
-	elseif (self.x > targetship.x + 4) then self.x=self.x-1 end
-	if (self.y < targetship.y + 4) then self.y=self.y+1
-	elseif (self.y > targetship.y + 4) then self.y=self.y-1 end
+	if self.pstate == 'follow' then
+		--dists = array_map(ships, function (ship) return dist(ship, self) end)
+		local targetship = ships[1] --ships[array_findIndex(dists, math.max(unpack(dists)))]
 
-	curspr=340
-	spr(curspr,cam.x+self.x-4,cam.y+self.y-4,0,1,0,0,1,1)
-	spr(curspr+1,cam.x+self.x+4,cam.y+self.y-4,0,1,0,0,1,1)
-	spr(curspr+16,cam.x+self.x-4,cam.y+self.y+4,0,1,0,0,1,1)
-	spr(curspr+17,cam.x+self.x+4,cam.y+self.y+4,0,1,0,0,1,1)
+		if (self.x < targetship.x + 4) then self.x=self.x+1
+		elseif (self.x > targetship.x + 4) then self.x=self.x-1 end
+		if (self.y < targetship.y + 4) then self.y=self.y+1
+		elseif (self.y > targetship.y + 4) then self.y=self.y-1 end
+	elseif self.pstate == 'hitstun' then
+		if t-self.lasthit > self.DEATHANIMLEN then
+			table.remove(enemies, array_findIndex(enemies, self))
+		end
+		should_draw=(t%16)==0
+	end
+
+	if should_draw then
+		spr(curspr,cam.x+self.x-4,cam.y+self.y-4,0,1,0,0,1,1)
+		spr(curspr+1,cam.x+self.x+4,cam.y+self.y-4,0,1,0,0,1,1)
+		spr(curspr+16,cam.x+self.x-4,cam.y+self.y+4,0,1,0,0,1,1)
+		spr(curspr+17,cam.x+self.x+4,cam.y+self.y+4,0,1,0,0,1,1)
+	end
 end
 
 Ship = {}
@@ -79,7 +92,7 @@ function Ship:new(pnum)
 		hitboxr=8,
 
 		pnum=pnum,
-	} 
+	}
 	setmetatable(ship, self)
 	return ship
 end
@@ -308,6 +321,23 @@ function TIC()
 				if DEV then
 					circ(ship.x+4+cam.x,ship.y+4+cam.y,ship.hitboxr,8)
 					circ(ships[j].x+4+cam.x,ships[j].y+4+cam.y,ships[j].hitboxr,8)
+				end
+			end
+		end
+		for j=1,#enemies do
+			local d=math.abs(dist(ship.x,ship.y,enemies[j].x,enemies[j].y))
+			if d<=2*math.max(ship.hitboxr,enemies[j].hitboxr) then
+				if ship.pstate == 'boost' then
+					enemies[j].pstate = 'hitstun'
+					enemies[j].lasthit = t
+				else
+					-- ship.pstate = 'hitstun'
+				end
+				if DEV then
+					if enemies[j].pstate ~= 'hitstun' then
+						circ(ship.x+4+cam.x,ship.y+4+cam.y,ship.hitboxr,8)
+						circ(enemies[j].x+4+cam.x,enemies[j].y+4+cam.y,enemies[j].hitboxr,8)
+					end
 				end
 			end
 		end
