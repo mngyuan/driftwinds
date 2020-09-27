@@ -41,10 +41,10 @@ end
 Enemy = {}
 Enemy.__index = Enemy
 
-function Enemy:new()
+function Enemy:new(x, y)
 	local enemy={
-		x=80,
-		y=40,
+		x=x or 80,
+		y=y or 40,
 		spd=0,dir=0,
 		rspd=0.03,
 		MAXSPD=0.7,ACCAMT=0.05,DECAMT=1.02,
@@ -211,10 +211,10 @@ function Ship:TIC()
 		if self.driftside=='l' then
 			local scale=1
 			if t-self.lastdrift < self.DRIFTACCWIN then
-				scale=(t-self.lastdrift)^2/self.DRIFTACCWIN^2
+				scale=(t-self.lastdrift)/self.DRIFTACCWIN
 			end
 			if turnl then
-				self.driftdir=self.driftdir+scale*self.rspd*1.5
+				self.driftdir=self.driftdir+scale*self.rspd*1.2
 				--debugtxt=debugtxt..'rspd '..(scale*self.rspd/1.2)..'\n'
 			elseif turnr then
 				self.driftdir=self.driftdir-scale*self.rspd/2.5
@@ -226,13 +226,13 @@ function Ship:TIC()
 		elseif self.driftside=='r' then
 			local scale=1
 			if t-self.lastdrift < self.DRIFTACCWIN then
-				scale=(t-self.lastdrift)^2/self.DRIFTACCWIN^2
+				scale=(t-self.lastdrift)/self.DRIFTACCWIN
 			end
 			if turnl then
 				self.driftdir=self.driftdir+scale*self.rspd/2.5
 				--debugtxt=debugtxt..'rspd '..(scale*self.rspd/2.5)..'\n'
 			elseif turnr then
-				self.driftdir=self.driftdir-scale*self.rspd*1.5
+				self.driftdir=self.driftdir-scale*self.rspd*1.2
 				--debugtxt=debugtxt..'rspd '..(-scale*self.rspd/1.2)..'\n'
 			else
 				self.driftdir=self.driftdir-scale*self.rspd/2
@@ -363,6 +363,23 @@ function TIC()
 	)
 	if DEV then
 		--print(string.format('cam.x %.2f\ncam.y %.2f\nmap start x %.2f \nmap start y %.2f \ncam.x mod 8 %.2f \ncam.y mod 8 %.2f', cam.x, cam.y, ccx-15, ccy-8,(cam.x%8),(cam.y%8)),30,30,15,true)
+	end
+	if #enemies < 1 then
+		local r = math.random()
+		if r < 0.25 then
+			newx = ships[1].x - 120
+			newy = ships[1].y - 68
+		elseif r < 0.5 then
+			newx = ships[1].x + 120
+			newy = ships[1].y - 68
+		elseif r < 0.75 then
+			newx = ships[1].x - 120
+			newy = ships[1].y + 68
+		else
+			newx = ships[1].x + 120
+			newy = ships[1].y + 68
+		end
+		table.insert(enemies, Enemy:new(newx, newy))
 	end
 	for i,enemy in ipairs(enemies) do
 		enemy:TIC()
