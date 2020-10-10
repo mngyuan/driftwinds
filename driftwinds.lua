@@ -325,6 +325,7 @@ function Ship:TIC()
 end
 
 t=0
+freezeframes=0
 ships={Ship:new(0), Ship:new(1)}
 cam={x=120,y=68}
 enemies={Enemy:new()}
@@ -364,7 +365,6 @@ SETTINGS={x=16*8-1,y=9*8-1}
 
 init()
 function TIC()
-	
 	if mode=="menu" then
 		-------------------------------------
 		--------menu screen code-------------
@@ -388,6 +388,10 @@ function TIC()
 		-----------game screen code----------
 		-------------------------------------
 
+		if freezeframes > 0 then
+			freezeframes = freezeframes-1
+			return
+		end
 		-- follow one player
 		cam.x=math.min(120,120-ships[1].x)
 		cam.y=math.min(64,64-ships[1].y)
@@ -447,8 +451,12 @@ function TIC()
 				local d=math.abs(dist(ship.x,ship.y,enemies[j].x,enemies[j].y))
 				if d<=2*math.max(ship.hitboxr,enemies[j].hitboxr) then
 					if ship.pstate == 'boost' then
-						enemies[j].pstate = 'hitstun'
-						enemies[j].lasthit = t
+						-- if already got this "hit" nothing to do
+						if enemies[j].pstate ~= 'hitstun' then
+							enemies[j].pstate = 'hitstun'
+							enemies[j].lasthit = t
+							freezeframes = freezeframes+2
+						end
 					else
 						-- ship.pstate = 'hitstun'
 					end
