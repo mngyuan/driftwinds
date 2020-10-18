@@ -349,82 +349,121 @@ end
 function lerp(a,b,t) return (1-t)*a + t*b end
 --music(1)
 
+function init()
+	t=0
+	gamespeed=10
+	mode="menu"
+	p={x=8 ,y=1 }
+	e={x=21,y=15}
+	temp=1
+	cursor=PLAY
+end
+
+PLAY={x=12*8-1,y=9*8-1}
+SETTINGS={x=16*8-1,y=9*8-1}	
+
+init()
 function TIC()
-	-- follow one player
-	cam.x=math.min(120,120-ships[1].x)
-	cam.y=math.min(64,64-ships[1].y)
-	-- follow all players
-	--avgx=(ships[1].x + ships[2].x)/2
-	--avgy=(ships[1].y + ships[2].y)/2
-	--cam.x=math.min(120,120-avgx)
-	--cam.y=math.min(64,64-avgy)
-	-- follow one player with some leeway
-	--cam.x=math.min(120,lerp(cam.x,120-ships[1].x,0.05))
-	--cam.y=math.min(64,lerp(cam.y,64-ships[1].y,0.05))
-	-- camera cell x / y
-	local ccx=-cam.x/8
-	local ccy=-cam.y/8
-	-- draw ocean background
-	map(
-		math.ceil(ccx-15), math.ceil(ccy-8), -- ceil fixes jumping crossing 0
-		32,18, -- draw the whole screen's worth
-		(cam.x%8)-8,(cam.y%8)-8, -- minus 8 makes sure we fill the screen
-		-1,1,remap
-	)
-	if DEV then
-		--print(string.format('cam.x %.2f\ncam.y %.2f\nmap start x %.2f \nmap start y %.2f \ncam.x mod 8 %.2f \ncam.y mod 8 %.2f', cam.x, cam.y, ccx-15, ccy-8,(cam.x%8),(cam.y%8)),30,30,15,true)
+	
+	if mode=="menu" then
+		-------------------------------------
+		--------menu screen code-------------
+		-------------------------------------
+		
+		--clear the screen
+		cls()
+		
+		--draw start menu on the map starting at position (0,0)
+		map(0,0,60,17)
+		
+		--now print the name of the game!
+		print("Press UP to start",60,60,2)
+	  
+		--press (A) to select current option
+		if btnp(0) then mode="game"
 	end
-	if #enemies < 1 then
-		local r = math.random()
-		if r < 0.25 then
-			newx = ships[1].x - 120
-			newy = ships[1].y - 68
-		elseif r < 0.5 then
-			newx = ships[1].x + 120
-			newy = ships[1].y - 68
-		elseif r < 0.75 then
-			newx = ships[1].x - 120
-			newy = ships[1].y + 68
-		else
-			newx = ships[1].x + 120
-			newy = ships[1].y + 68
+
+	elseif mode=="game" then
+		-------------------------------------
+		-----------game screen code----------
+		-------------------------------------
+
+		-- follow one player
+		cam.x=math.min(120,120-ships[1].x)
+		cam.y=math.min(64,64-ships[1].y)
+		-- follow all players
+		--avgx=(ships[1].x + ships[2].x)/2
+		--avgy=(ships[1].y + ships[2].y)/2
+		--cam.x=math.min(120,120-avgx)
+		--cam.y=math.min(64,64-avgy)
+		-- follow one player with some leeway
+		--cam.x=math.min(120,lerp(cam.x,120-ships[1].x,0.05))
+		--cam.y=math.min(64,lerp(cam.y,64-ships[1].y,0.05))
+		-- camera cell x / y
+		local ccx=-cam.x/8
+		local ccy=-cam.y/8
+		-- draw ocean background
+		map(
+			math.ceil(ccx-15), math.ceil(ccy-8), -- ceil fixes jumping crossing 0
+			32,18, -- draw the whole screen's worth
+			(cam.x%8)-8,(cam.y%8)-8, -- minus 8 makes sure we fill the screen
+			-1,1,remap
+		)
+		if DEV then
+			--print(string.format('cam.x %.2f\ncam.y %.2f\nmap start x %.2f \nmap start y %.2f \ncam.x mod 8 %.2f \ncam.y mod 8 %.2f', cam.x, cam.y, ccx-15, ccy-8,(cam.x%8),(cam.y%8)),30,30,15,true)
 		end
-		table.insert(enemies, Enemy:new(newx, newy))
-	end
-	for i,enemy in ipairs(enemies) do
-		enemy:TIC()
-	end
-	for i,ship in ipairs(ships) do
-		ship:TIC()
-		for j=i+1,#ships do
-			local d=math.abs(dist(ship.x,ship.y,ships[j].x,ships[j].y))
-			if d<=2*math.max(ship.hitboxr,ships[j].hitboxr) then
-				if DEV then
-					circ(ship.x+4+cam.x,ship.y+4+cam.y,ship.hitboxr,8)
-					circ(ships[j].x+4+cam.x,ships[j].y+4+cam.y,ships[j].hitboxr,8)
+		if #enemies < 1 then
+			local r = math.random()
+			if r < 0.25 then
+				newx = ships[1].x - 120
+				newy = ships[1].y - 68
+			elseif r < 0.5 then
+				newx = ships[1].x + 120
+				newy = ships[1].y - 68
+			elseif r < 0.75 then
+				newx = ships[1].x - 120
+				newy = ships[1].y + 68
+			else
+				newx = ships[1].x + 120
+				newy = ships[1].y + 68
+			end
+			table.insert(enemies, Enemy:new(newx, newy))
+		end
+		for i,enemy in ipairs(enemies) do
+			enemy:TIC()
+		end
+		for i,ship in ipairs(ships) do
+			ship:TIC()
+			for j=i+1,#ships do
+				local d=math.abs(dist(ship.x,ship.y,ships[j].x,ships[j].y))
+				if d<=2*math.max(ship.hitboxr,ships[j].hitboxr) then
+					if DEV then
+						circ(ship.x+4+cam.x,ship.y+4+cam.y,ship.hitboxr,8)
+						circ(ships[j].x+4+cam.x,ships[j].y+4+cam.y,ships[j].hitboxr,8)
+					end
 				end
 			end
-		end
-		for j=1,#enemies do
-			local d=math.abs(dist(ship.x,ship.y,enemies[j].x,enemies[j].y))
-			if d<=2*math.max(ship.hitboxr,enemies[j].hitboxr) then
-				if ship.pstate == 'boost' then
-					enemies[j].pstate = 'hitstun'
-					enemies[j].lasthit = t
-				else
-					-- ship.pstate = 'hitstun'
-				end
-				if DEV then
-					if enemies[j].pstate ~= 'hitstun' then
-						circ(ship.x+4+cam.x,ship.y+4+cam.y,ship.hitboxr,8)
-						circ(enemies[j].x+4+cam.x,enemies[j].y+4+cam.y,enemies[j].hitboxr,8)
+			for j=1,#enemies do
+				local d=math.abs(dist(ship.x,ship.y,enemies[j].x,enemies[j].y))
+				if d<=2*math.max(ship.hitboxr,enemies[j].hitboxr) then
+					if ship.pstate == 'boost' then
+						enemies[j].pstate = 'hitstun'
+						enemies[j].lasthit = t
+					else
+						-- ship.pstate = 'hitstun'
+					end
+					if DEV then
+						if enemies[j].pstate ~= 'hitstun' then
+							circ(ship.x+4+cam.x,ship.y+4+cam.y,ship.hitboxr,8)
+							circ(enemies[j].x+4+cam.x,enemies[j].y+4+cam.y,enemies[j].hitboxr,8)
+						end
 					end
 				end
 			end
 		end
+		print('DRIFTWINDS alpha', 4, 4, 15)
+		t=t+1
 	end
-	print('DRIFTWINDS alpha', 4, 4, 15)
-	t=t+1
 end
 
 -- <TILES>
